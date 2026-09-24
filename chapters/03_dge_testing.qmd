@@ -5,7 +5,7 @@ execute:
   warning: false
 ---
 
-# Chapter title
+# Identifying differentially expressed genes
 
 
 ```{r here}

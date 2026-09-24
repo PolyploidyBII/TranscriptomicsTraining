@@ -1,0 +1,15 @@
+{
+  "hash": "933a53b9a29ec50f7b461e458a7540ed",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\nexecute: \n  echo: true\n  eval: false\n  warning: false\n---\n\n# Appendices {.unnumbered}\n\nHere, you can find other pieces of code (Bash and R scripts) that were\nused in the main chapters. These pieces of code were stored in separate files\nto make the main text (i.e., book chapters) more readable.\n\n\n## Session info {.unnumbered}\n\nThis document was created under the following conditions:\n\n\n::: {.cell}\n::: {.cell-output .cell-output-stdout}\n\n```\n─ Session info ───────────────────────────────────────────────────────────────\n setting  value\n version  R version 4.5.2 (2025-10-31)\n os       Ubuntu 22.04.5 LTS\n system   x86_64, linux-gnu\n ui       X11\n language (EN)\n collate  en_US.UTF-8\n ctype    en_US.UTF-8\n tz       Europe/Brussels\n date     2026-09-23\n pandoc   3.6.3 @ /usr/lib/rstudio/resources/app/bin/quarto/bin/tools/x86_64/ (via rmarkdown)\n quarto   1.8.25 @ /usr/local/bin/quarto\n\n─ Packages ───────────────────────────────────────────────────────────────────\n package     * version date (UTC) lib source\n cli           3.6.5   2025-04-23 [1] CRAN (R 4.5.2)\n digest        0.6.39  2025-11-19 [1] CRAN (R 4.5.2)\n evaluate      1.0.5   2025-08-27 [1] CRAN (R 4.5.2)\n fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.5.2)\n htmltools     0.5.9   2025-12-04 [1] CRAN (R 4.5.2)\n htmlwidgets   1.6.4   2023-12-06 [1] CRAN (R 4.5.2)\n jsonlite      2.0.0   2025-03-27 [1] CRAN (R 4.5.2)\n knitr         1.51    2025-12-20 [1] CRAN (R 4.5.2)\n otel          0.2.0   2025-08-29 [1] CRAN (R 4.5.2)\n rlang         1.1.7   2026-01-09 [1] CRAN (R 4.5.2)\n rmarkdown     2.30    2025-09-28 [1] CRAN (R 4.5.2)\n rstudioapi    0.18.0  2026-01-16 [1] CRAN (R 4.5.2)\n sessioninfo   1.2.3   2025-02-05 [1] CRAN (R 4.5.2)\n xfun          0.56    2026-01-18 [1] CRAN (R 4.5.2)\n yaml          2.3.12  2025-12-10 [1] CRAN (R 4.5.2)\n\n [1] /home/faalm/R/x86_64-pc-linux-gnu-library/4.5\n [2] /usr/local/lib/R/site-library\n [3] /usr/lib/R/site-library\n [4] /usr/lib/R/library\n\n──────────────────────────────────────────────────────────────────────────────\n```\n\n\n:::\n:::\n\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

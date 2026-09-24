@@ -5,7 +5,7 @@ execute:
   warning: false
 ---
 
-# Chapter title
+# Data import, normalization, and exploratory analysis
 
 
 ```{r here}
