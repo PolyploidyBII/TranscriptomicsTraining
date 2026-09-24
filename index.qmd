@@ -11,3 +11,16 @@ ploidy levels for different genotypes
 4. Perform functional analyses (overrepresentation- and rank-based enrichment 
 analysis)
 
+## Getting to know the example data set
+
+Here, we will work with an example RNA-seq data set with samples
+from *Arabidopsis thaliana* leaves, two different genotypes (named `C` and `E`), 
+and three ploidy levels (2x, 4x, and 8x for genotype `C`; 2x and 4x for 
+genotype `E`). Five biological replicates were made for each genotype and 
+ploidy level. The scientific questions we'll try to address are:
+
+- at the transcriptome and cell levels, what genes are differentially 
+expressed in polyploids (4x and 8x) relative to diploids (2x)?
+- are sets of differentially expressed genes (DEGs) the same across genotypes,
+or are there genotype-specific responses?
+- what pathways/biological processes are affected by polyploidy?
