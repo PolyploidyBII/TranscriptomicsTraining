@@ -1,26 +1,185 @@
 ---
 execute: 
   echo: true
-  eval: false
   warning: false
 ---
 
 # Data import, normalization, and exploratory analysis
 
+In this chapter, you will learn how to read the transcript abundances
+produced with _salmon_ [@patro2017salmon] to R, normalize data using
+different approaches, and perform exploratory analysis on the data.
+At the end of this chapter, we will be able to:
+
+- read the output of _salmon_ [@patro2017salmon] to a `SummarizedExperiment`
+object containing gene-level transcript abundances across samples.
+- normalize data by library size and by cell (with spike-in standards)
+- explore sample grouping with principal component analyses.
+
+We will start by loading the required packages.
 
 ```{r here}
 #| message: false
 #| eval: true
 
 library(here)
+library(tidyverse)
+library(rplaza)
+library(fs)
+library(tximport)
+library(SummarizedExperiment)
 
 set.seed(123) # for reproducibility
 ```
 
-## Section 1
+## Obtaining the example data
+
+In this chapter, we will start from the output of __salmon__ [@patro2017salmon]
+for all samples (2 genotypes, 3 ploidy levels; see Preface for details), 
+produced with the _nfcore/rnaseq_ pipeline. _salmon_ returns one folder
+per sample, each containing a `quant.sf` file with transcript abundances.
+
+Let's download the example data from Zenodo and store it in a temporary
+directory.
+
+```{r}
+# Download example data to a temporary directory
+fpath <- file.path(tempdir(), "example_data.zip")
+download.file(
+    url = "https://zenodo.org/records/22938731/files/star_salmon.zip?download=1",
+    destfile = fpath
+)
+
+# Unzip file
+unzip(fpath, exdir = tempdir())
+```
+
+The output folder is called `star_salmon`. This is what it looks like:
+
+```{r}
+# Check the contents of the `star_salmon` folder
+salmon_dir <- file.path(tempdir(), "star_salmon")
+
+fs::dir_tree(salmon_dir)
+```
+
+We will also need a table of sample metadata, available in the same
+Zenodo dataset.
+
+```{r}
+# Get sample metadata from Zenodo directly to R
+coldata <- read_tsv(
+    "https://zenodo.org/records/22938731/files/sample_metadata.tsv?download=1",
+    show_col_types = FALSE
+) |>
+    tibble::column_to_rownames("sample")
+
+head(coldata)
+```
+
+Note that our metadata table includes variables describing ploidy level, 
+genotype, genotype and ploidy (useful to extract model coefficients later on),
+and presence/absence of spike-in standards (because spike-ins were not 
+reliable in particular samples).
+
+## Data import: from `quant.sf` files to a `SummarizedExperiment` object
+
+To import data from `quant.sf` files, we will use the _tximport_ package
+[@soneson2016differential]. For that, we need to specify the paths to
+all `quant.sf` files, as well as a table of transcript-to-gene ID mappings.
+This is because transcriptomics quantifies **transcript abundances**, but 
+we're often interested in analyzing data at the gene level. Hence, we need
+to aggregate transcript-level abundances to gene-level abundances.
+
+There are many ways you can obtain correspondence tables between transcripts
+and genes (e.g., from GTF files, from headers in the FASTA files for 
+transcripts, etc). The PLAZA database [@van2022plaza] for comparative plant genomics
+already provides such tables for all of its ~150 species, so we will retrieve
+it from there.
+
+```{r}
+# Retrieve transcript-to-gene mappings from PLAZA
+ath_tx2gene <- rplaza::get_id_conversions("ath") |>
+    filter(alt_id_type == "tid") |>
+    select(txid = alt_id, geneid = original_id)
+
+head(ath_tx2gene)
+```
+
+Note that the order of the columns matter: transcript IDs must be in column 1,
+and their corresponding parent gene IDs in column 2. We will need the paths
+to all `quant.sf` files. This can be obtained with:
+
+```{r}
+# Define paths to `quant.sf` files
+qfiles <- list.files(
+    salmon_dir, recursive = TRUE, pattern = "\\.sf", full.names = TRUE
+)
+
+head(qfiles)
+```
+
+With that, we can import a table of gene-level transcript abundances 
+across samples. One of the main advantages of using _tximport_ is that
+it aggregates transcript-level abundances to gene-level abundances while
+correcting for differences in transcript lengths (i.e., because longer
+transcripts tend to have more reads mapped to them). However, since we have
+3' tagged RNA-seq data, there are no differences in transcript lengths, because
+we didn't sequence full transcripts. Hence, we will not correct for transcript
+length biases here. We can import abundances with:
+
+```{r}
+# Import gene-level tx abundances across samples
+counts <- tximport(
+    qfiles, type = "salmon", tx2gene = ath_tx2gene, countsFromAbundance = "no"
+)$counts
+
+# Add proper column names (sample IDs)
+colnames(counts) <- basename(dirname(qfiles))
+
+# Make sure values are integers
+counts <- round(counts)
+
+# Taking a look at the matrix
+head(counts)
+```
+
+In the Bioconductor ecosystem, package developers and users rely on 
+the `SummarizedExperiment` class to store quantitative data and associated 
+metadata. This ensures packages can seamless interoperate with each other,
+and makes data analysis workflows simpler. We can create a 
+`SummarizedExperiment` object with:
+
+```{r}
+# Making sure sample IDs in `coldata` match column names in `counts`
+coldata <- coldata[match(rownames(coldata), colnames(counts)), ]
+
+# Creating a `SummarizedExperiment` object
+se <- SummarizedExperiment(
+    assays = list(counts = counts),
+    colData = coldata
+)
+
+se
+```
+
+In a `SummarizedExperiment` object, matrices are stored in the *assays* slot
+(only one here, named `counts`), and column (i.e., sample) metadata is
+stored in the *colData* slot. To access assays and colData, you can the 
+following accessor functions:
+
+```{r}
+# Accessing first assay
+assay(se, "counts") |> head()
+
+#  Accessing colData 
+colData(se) |> head()
+```
+
+## Computing size factors: library sizes and cell volumes
 
 
-## Section 2
+
 
 
 ## Session info {.unnumbered}
