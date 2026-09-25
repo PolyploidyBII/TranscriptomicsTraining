@@ -216,6 +216,8 @@ div.csl-indent {
   <li><a href="#obtaining-the-example-data" id="toc-obtaining-the-example-data" class="nav-link active" data-scroll-target="#obtaining-the-example-data"><span class="header-section-number">2.1</span> Obtaining the example data</a></li>
   <li><a href="#data-import-from-quant.sf-files-to-a-summarizedexperiment-object" id="toc-data-import-from-quant.sf-files-to-a-summarizedexperiment-object" class="nav-link" data-scroll-target="#data-import-from-quant.sf-files-to-a-summarizedexperiment-object"><span class="header-section-number">2.2</span> Data import: from <code>quant.sf</code> files to a <code>SummarizedExperiment</code> object</a></li>
   <li><a href="#computing-size-factors-library-sizes-and-cell-volumes" id="toc-computing-size-factors-library-sizes-and-cell-volumes" class="nav-link" data-scroll-target="#computing-size-factors-library-sizes-and-cell-volumes"><span class="header-section-number">2.3</span> Computing size factors: library sizes and cell volumes</a></li>
+  <li><a href="#principal-component-analysis" id="toc-principal-component-analysis" class="nav-link" data-scroll-target="#principal-component-analysis"><span class="header-section-number">2.4</span> Principal component analysis</a></li>
+  <li><a href="#wrapping-up" id="toc-wrapping-up" class="nav-link" data-scroll-target="#wrapping-up">Wrapping up</a></li>
   <li><a href="#session-info" id="toc-session-info" class="nav-link" data-scroll-target="#session-info">Session info</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
@@ -255,10 +257,13 @@ div.csl-indent {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rplaza)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fs)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tximport)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tximeta)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SummarizedExperiment)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>) <span class="co"># for reproducibility</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(HybridExpress)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DESeq2)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>) <span class="co"># for reproducibility</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="obtaining-the-example-data" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="obtaining-the-example-data"><span class="header-section-number">2.1</span> Obtaining the example data</h2>
@@ -282,7 +287,7 @@ div.csl-indent {
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">dir_tree</span>(salmon_dir)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>/tmp/RtmpUNHU0q/star_salmon
+<pre><code>/tmp/Rtmpw1lW2G/star_salmon
 ├── C2x_rep1
 │   └── quant.sf
 ├── C2x_rep2
@@ -341,33 +346,97 @@ div.csl-indent {
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>coldata <span class="ot">&lt;-</span> <span class="fu">read_tsv</span>(</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"https://zenodo.org/records/22938731/files/sample_metadata.tsv?download=1"</span>,</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    tibble<span class="sc">::</span><span class="fu">column_to_rownames</span>(<span class="st">"sample"</span>)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(coldata)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(coldata)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>         genotype ploidy genotype_ploidy spike_in
-C2x_rep1        C     2x             C2x     TRUE
-C2x_rep2        C     2x             C2x     TRUE
-C2x_rep3        C     2x             C2x     TRUE
-C2x_rep4        C     2x             C2x    FALSE
-C2x_rep5        C     2x             C2x     TRUE
-C4x_rep1        C     4x             C4x     TRUE</code></pre>
+<pre><code># A tibble: 6 × 5
+  sample   genotype ploidy genotype_ploidy spike_in
+  &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt;           &lt;lgl&gt;   
+1 C2x_rep1 C        2x     C2x             TRUE    
+2 C2x_rep2 C        2x     C2x             TRUE    
+3 C2x_rep3 C        2x     C2x             TRUE    
+4 C2x_rep4 C        2x     C2x             FALSE   
+5 C2x_rep5 C        2x     C2x             TRUE    
+6 C4x_rep1 C        4x     C4x             TRUE    </code></pre>
 </div>
 </div>
 <p>Note that our metadata table includes variables describing ploidy level, genotype, genotype and ploidy (useful to extract model coefficients later on), and presence/absence of spike-in standards (because spike-ins were not reliable in particular samples).</p>
 </section>
 <section id="data-import-from-quant.sf-files-to-a-summarizedexperiment-object" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="data-import-from-quant.sf-files-to-a-summarizedexperiment-object"><span class="header-section-number">2.2</span> Data import: from <code>quant.sf</code> files to a <code>SummarizedExperiment</code> object</h2>
-<p>To import data from <code>quant.sf</code> files, we will use the <em>tximport</em> package <span class="citation" data-cites="soneson2016differential">(<a href="#ref-soneson2016differential" role="doc-biblioref">Soneson et al. 2016</a>)</span>. For that, we need to specify the paths to all <code>quant.sf</code> files, as well as a table of transcript-to-gene ID mappings. This is because transcriptomics quantifies <strong>transcript abundances</strong>, but we’re often interested in analyzing data at the gene level. Hence, we need to aggregate transcript-level abundances to gene-level abundances.</p>
-<p>There are many ways you can obtain correspondence tables between transcripts and genes (e.g., from GTF files, from headers in the FASTA files for transcripts, etc). The PLAZA database <span class="citation" data-cites="van2022plaza">(<a href="#ref-van2022plaza" role="doc-biblioref">Van Bel et al. 2022</a>)</span> for comparative plant genomics already provides such tables for all of its ~150 species, so we will retrieve it from there.</p>
+<p>To import data from <code>quant.sf</code> files, we will use the <em>tximeta</em> package <span class="citation" data-cites="love2020tximeta">(<a href="#ref-love2020tximeta" role="doc-biblioref">Love et al. 2020</a>)</span>. For that, we need to create a data frame with columns <code>files</code> (paths to <code>quant.sf</code> files produced by salmon), and <code>names</code> (names to be used as sample IDs).</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Retrieve transcript-to-gene mappings from PLAZA</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ath_tx2gene <span class="ot">&lt;-</span> rplaza<span class="sc">::</span><span class="fu">get_id_conversions</span>(<span class="st">"ath"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(alt_id_type <span class="sc">==</span> <span class="st">"tid"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="at">txid =</span> alt_id, <span class="at">geneid =</span> original_id)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(ath_tx2gene)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get paths to `quant.sf` files</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>qfiles <span class="ot">&lt;-</span> <span class="fu">list.files</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    salmon_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">pattern =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">.sf"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(qfiles)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "/tmp/Rtmpw1lW2G/star_salmon/C2x_rep1/quant.sf"
+[2] "/tmp/Rtmpw1lW2G/star_salmon/C2x_rep2/quant.sf"
+[3] "/tmp/Rtmpw1lW2G/star_salmon/C2x_rep3/quant.sf"
+[4] "/tmp/Rtmpw1lW2G/star_salmon/C2x_rep4/quant.sf"
+[5] "/tmp/Rtmpw1lW2G/star_salmon/C2x_rep5/quant.sf"
+[6] "/tmp/Rtmpw1lW2G/star_salmon/C4x_rep1/quant.sf"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create data frame required by {tximeta}</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>tximeta_df <span class="ot">&lt;-</span><span class="fu">data.frame</span>(<span class="at">files =</span> qfiles, <span class="at">names =</span> <span class="fu">basename</span>(<span class="fu">dirname</span>(qfiles)))</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(tximeta_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                          files    names
+1 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep1/quant.sf C2x_rep1
+2 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep2/quant.sf C2x_rep2
+3 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep3/quant.sf C2x_rep3
+4 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep4/quant.sf C2x_rep4
+5 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep5/quant.sf C2x_rep5
+6 /tmp/Rtmpw1lW2G/star_salmon/C4x_rep1/quant.sf C4x_rep1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Merge with `coldata` to include additional metadata variables</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>coldata <span class="ot">&lt;-</span> <span class="fu">left_join</span>(tximeta_df, coldata, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"names"</span> <span class="ot">=</span> <span class="st">"sample"</span>))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(coldata)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                          files    names genotype ploidy
+1 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep1/quant.sf C2x_rep1        C     2x
+2 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep2/quant.sf C2x_rep2        C     2x
+3 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep3/quant.sf C2x_rep3        C     2x
+4 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep4/quant.sf C2x_rep4        C     2x
+5 /tmp/Rtmpw1lW2G/star_salmon/C2x_rep5/quant.sf C2x_rep5        C     2x
+6 /tmp/Rtmpw1lW2G/star_salmon/C4x_rep1/quant.sf C4x_rep1        C     4x
+  genotype_ploidy spike_in
+1             C2x     TRUE
+2             C2x     TRUE
+3             C2x     TRUE
+4             C2x    FALSE
+5             C2x     TRUE
+6             C4x     TRUE</code></pre>
+</div>
+</div>
+<p>We can now import transcript abundances with the <code>tximeta()</code> function, which returns a <code>SummarizedExperiment</code> object with a count matrix of transcript abundances across samples, as well as sample metadata in the <em>coldata</em> slot.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get `SummarizedExperiment object</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>se_tx <span class="ot">&lt;-</span> <span class="fu">tximeta</span>(coldata, <span class="at">skipMeta =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>se_tx</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class: SummarizedExperiment 
+dim: 54105 25 
+metadata(2): tximetaInfo countsFromAbundance
+assays(3): counts abundance length
+rownames(54105): AT1G01010.1 AT1G01020.2 ... ERCC-00170_gene
+  ERCC-00171_gene
+rowData names(0):
+colnames(25): C2x_rep1 C2x_rep2 ... E4x_rep4 E4x_rep5
+colData names(5): names genotype ploidy genotype_ploidy spike_in</code></pre>
+</div>
+</div>
+<p>Note that assays contain &gt;54k features. This is because transcriptomics quantifies <strong>transcript abundances</strong>, so our estimates are at the transcript level. However, we’re often interested in abundances at the gene level (e.g., to find differentially expressed genes). Hence, we will need to aggregate our transcript-level abundances to gene-level abundances. To so do, we will need a correspondence table between transcript IDs and gene IDs (i.e., transcripts and their parent genes). There are many ways you can obtain such tables (e.g., from GTF files, from headers in the FASTA files for transcripts, etc). The PLAZA database <span class="citation" data-cites="van2022plaza">(<a href="#ref-van2022plaza" role="doc-biblioref">Van Bel et al. 2022</a>)</span> for comparative plant genomics already provides such tables for all of its ~150 species, so we will retrieve it from there.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Retrieve transcript-to-gene mappings from PLAZA</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>ath_tx2gene <span class="ot">&lt;-</span> rplaza<span class="sc">::</span><span class="fu">get_id_conversions</span>(<span class="st">"ath"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(alt_id_type <span class="sc">==</span> <span class="st">"tid"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="at">txid =</span> alt_id, <span class="at">geneid =</span> original_id)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(ath_tx2gene)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>         txid    geneid
 1 AT1G01010.1 AT1G01010
@@ -378,96 +447,88 @@ C4x_rep1        C     4x             C4x     TRUE</code></pre>
 6 AT1G01050.1 AT1G01050</code></pre>
 </div>
 </div>
-<p>Note that the order of the columns matter: transcript IDs must be in column 1, and their corresponding parent gene IDs in column 2. We will need the paths to all <code>quant.sf</code> files. This can be obtained with:</p>
+<p>If you have spike-in controls in your data, you will also need to add those to the <code>tx2gene</code> table. In our data, feature IDs of spike-in standards start with ‘ERCC’.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define paths to `quant.sf` files</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>qfiles <span class="ot">&lt;-</span> <span class="fu">list.files</span>(</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    salmon_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">pattern =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">.sf"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(qfiles)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Adding ERCC features (spike-ins) to `tx2gene`</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>tx2gene_ercc <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">txid =</span> <span class="fu">rownames</span>(se_tx)) <span class="sc">|&gt;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="fu">str_detect</span>(txid, <span class="st">"^ERCC"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">geneid =</span> <span class="fu">str_replace_all</span>(txid, <span class="st">"_gene"</span>, <span class="st">""</span>))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(tx2gene_ercc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "/tmp/RtmpUNHU0q/star_salmon/C2x_rep1/quant.sf"
-[2] "/tmp/RtmpUNHU0q/star_salmon/C2x_rep2/quant.sf"
-[3] "/tmp/RtmpUNHU0q/star_salmon/C2x_rep3/quant.sf"
-[4] "/tmp/RtmpUNHU0q/star_salmon/C2x_rep4/quant.sf"
-[5] "/tmp/RtmpUNHU0q/star_salmon/C2x_rep5/quant.sf"
-[6] "/tmp/RtmpUNHU0q/star_salmon/C4x_rep1/quant.sf"</code></pre>
+<pre><code>             txid     geneid
+1 ERCC-00002_gene ERCC-00002
+2 ERCC-00003_gene ERCC-00003
+3 ERCC-00004_gene ERCC-00004
+4 ERCC-00009_gene ERCC-00009
+5 ERCC-00012_gene ERCC-00012
+6 ERCC-00013_gene ERCC-00013</code></pre>
 </div>
-</div>
-<p>With that, we can import a table of gene-level transcript abundances across samples. One of the main advantages of using <em>tximport</em> is that it aggregates transcript-level abundances to gene-level abundances while correcting for differences in transcript lengths (i.e., because longer transcripts tend to have more reads mapped to them). However, since we have 3’ tagged RNA-seq data, there are no differences in transcript lengths, because we didn’t sequence full transcripts. Hence, we will not correct for transcript length biases here. We can import abundances with:</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Import gene-level tx abundances across samples</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> <span class="fu">tximport</span>(</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    qfiles, <span class="at">type =</span> <span class="st">"salmon"</span>, <span class="at">tx2gene =</span> ath_tx2gene, <span class="at">countsFromAbundance =</span> <span class="st">"no"</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>)<span class="sc">$</span>counts</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Add proper column names (sample IDs)</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(counts) <span class="ot">&lt;-</span> <span class="fu">basename</span>(<span class="fu">dirname</span>(qfiles))</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Make sure values are integers</span></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> <span class="fu">round</span>(counts)</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Taking a look at the matrix</span></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(counts)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>tx2gene <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(ath_tx2gene, tx2gene_ercc)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(tx2gene)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>          C2x_rep1 C2x_rep2 C2x_rep3 C2x_rep4 C2x_rep5 C4x_rep1 C4x_rep2
-AT1G01010       25       26       37       10        9       32       26
-AT1G01020       30       35        0        8       26       33       38
-AT1G01030        5       12        9        3        4        8       11
-AT1G01040      119      117      119       45      121      130      135
-AT1G01050      534      809      508      150      522      892      659
-AT1G01060        0        1        0        1        1        1        3
-          C4x_rep3 C4x_rep4 C4x_rep5 C8x_rep1 C8x_rep2 C8x_rep3 C8x_rep4
-AT1G01010       24       22       22       47       15       59       18
-AT1G01020       35       39       44       31       29       35       31
-AT1G01030       16        8        7        8        6        7        2
-AT1G01040      194      116      106      146      112      196       89
-AT1G01050      831      525      462      645      599      733      663
-AT1G01060        5        6        2       19        3        0       13
-          C8x_rep5 E2x_rep1 E2x_rep2 E2x_rep3 E2x_rep4 E2x_rep5 E4x_rep1
-AT1G01010       33       17       13       18       20       17       69
-AT1G01020       25       15       36       36       33       21       32
-AT1G01030       12        4       20        7        8        3       17
-AT1G01040      144      123      192      136      153      137      268
-AT1G01050      759      654      912      575      658      521      989
-AT1G01060        2        0        6        3        3        3       12
-          E4x_rep2 E4x_rep3 E4x_rep4 E4x_rep5
-AT1G01010       24       11       20       11
-AT1G01020       27       33       29       32
-AT1G01030        5        9       10        6
-AT1G01040      154      161      141      150
-AT1G01050      704      750      541      518
-AT1G01060        7        1        3        5</code></pre>
+<pre><code>         txid    geneid
+1 AT1G01010.1 AT1G01010
+2 AT1G01020.5 AT1G01020
+3 AT1G01030.1 AT1G01030
+4 AT1G01040.1 AT1G01040
+5 AT1G01046.1 AT1G01046
+6 AT1G01050.1 AT1G01050</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span>(tx2gene)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 txid     geneid
+38281 ERCC-00163_gene ERCC-00163
+38282 ERCC-00164_gene ERCC-00164
+38283 ERCC-00165_gene ERCC-00165
+38284 ERCC-00168_gene ERCC-00168
+38285 ERCC-00170_gene ERCC-00170
+38286 ERCC-00171_gene ERCC-00171</code></pre>
 </div>
 </div>
-<p>In the Bioconductor ecosystem, package developers and users rely on the <code>SummarizedExperiment</code> class to store quantitative data and associated metadata. This ensures packages can seamless interoperate with each other, and makes data analysis workflows simpler. We can create a <code>SummarizedExperiment</code> object with:</p>
+<p>We can then aggregate our transcript abundances to the gene level using the <code>summarizeToGene()</code> function from <em>tximport</em> <span class="citation" data-cites="soneson2016differential">(<a href="#ref-soneson2016differential" role="doc-biblioref">Soneson et al. 2016</a>)</span>. One of the main advantages of this method is that it aggregates transcript-level abundances to gene-level abundances while correcting for differences in transcript lengths (i.e., because longer transcripts tend to have more reads mapped to them). However, since we have 3’ tagged RNA-seq data, there are no differences in transcript lengths, because we didn’t sequence full transcripts. Hence, we will not correct for transcript length biases here. We can import abundances with:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Making sure sample IDs in `coldata` match column names in `counts`</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>coldata <span class="ot">&lt;-</span> coldata[<span class="fu">match</span>(<span class="fu">rownames</span>(coldata), <span class="fu">colnames</span>(counts)), ]</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating a `SummarizedExperiment` object</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>se <span class="ot">&lt;-</span> <span class="fu">SummarizedExperiment</span>(</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">assays =</span> <span class="fu">list</span>(<span class="at">counts =</span> counts),</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">colData =</span> coldata</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>se</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Aggregate abundances to the gene level</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>se <span class="ot">&lt;-</span> <span class="fu">summarizeToGene</span>(</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    se_tx, <span class="at">tx2gene =</span> tx2gene, <span class="at">countsFromAbundance =</span> <span class="st">"no"</span>, <span class="at">skipRanges =</span> <span class="cn">TRUE</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>se</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>class: SummarizedExperiment 
-dim: 32508 25 
-metadata(0):
-assays(1): counts
-rownames(32508): AT1G01010 AT1G01020 ... ATMG09960 ATMG09980
+dim: 32600 25 
+metadata(4): tximetaInfo countsFromAbundance level assignRanges
+assays(3): counts abundance length
+rownames(32600): AT1G01010 AT1G01020 ... ERCC-00170 ERCC-00171
 rowData names(0):
 colnames(25): C2x_rep1 C2x_rep2 ... E4x_rep4 E4x_rep5
-colData names(4): genotype ploidy genotype_ploidy spike_in</code></pre>
+colData names(5): names genotype ploidy genotype_ploidy spike_in</code></pre>
 </div>
 </div>
-<p>In a <code>SummarizedExperiment</code> object, matrices are stored in the <em>assays</em> slot (only one here, named <code>counts</code>), and column (i.e., sample) metadata is stored in the <em>colData</em> slot. To access assays and colData, you can the following accessor functions:</p>
+<p>We will also remove unnecessary assays and make sure our counts are integers (required by <em>DESeq2</em>).</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Accessing first assay</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(se, <span class="st">"counts"</span>) <span class="sc">|&gt;</span> <span class="fu">head</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove `abundance` and `length` assays</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(se, <span class="st">"abundance"</span>) <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(se, <span class="st">"length"</span>) <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Round `counts` assay</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(se, <span class="st">"counts"</span>) <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">assay</span>(se, <span class="st">"counts"</span>))</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>se</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class: SummarizedExperiment 
+dim: 32600 25 
+metadata(4): tximetaInfo countsFromAbundance level assignRanges
+assays(1): counts
+rownames(32600): AT1G01010 AT1G01020 ... ERCC-00170 ERCC-00171
+rowData names(0):
+colnames(25): C2x_rep1 C2x_rep2 ... E4x_rep4 E4x_rep5
+colData names(5): names genotype ploidy genotype_ploidy spike_in</code></pre>
+</div>
+</div>
+<p>This is what the count matrix and coldata (sample metadata) look like:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(se, <span class="st">"counts"</span>) <span class="sc">|&gt;</span> <span class="fu">head</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          C2x_rep1 C2x_rep2 C2x_rep3 C2x_rep4 C2x_rep5 C4x_rep1 C4x_rep2
 AT1G01010       25       26       37       10        9       32       26
@@ -498,23 +559,252 @@ AT1G01040      154      161      141      150
 AT1G01050      704      750      541      518
 AT1G01060        7        1        3        5</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#  Accessing colData </span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(se) <span class="sc">|&gt;</span> <span class="fu">head</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(se) <span class="sc">|&gt;</span> <span class="fu">head</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>DataFrame with 6 rows and 4 columns
-            genotype      ploidy genotype_ploidy  spike_in
-         &lt;character&gt; &lt;character&gt;     &lt;character&gt; &lt;logical&gt;
-C2x_rep1           C          2x             C2x      TRUE
-C2x_rep2           C          2x             C2x      TRUE
-C2x_rep3           C          2x             C2x      TRUE
-C2x_rep4           C          2x             C2x     FALSE
-C2x_rep5           C          2x             C2x      TRUE
-C4x_rep1           C          4x             C4x      TRUE</code></pre>
+<pre><code>DataFrame with 6 rows and 5 columns
+               names    genotype      ploidy genotype_ploidy  spike_in
+         &lt;character&gt; &lt;character&gt; &lt;character&gt;     &lt;character&gt; &lt;logical&gt;
+C2x_rep1    C2x_rep1           C          2x             C2x      TRUE
+C2x_rep2    C2x_rep2           C          2x             C2x      TRUE
+C2x_rep3    C2x_rep3           C          2x             C2x      TRUE
+C2x_rep4    C2x_rep4           C          2x             C2x     FALSE
+C2x_rep5    C2x_rep5           C          2x             C2x      TRUE
+C4x_rep1    C4x_rep1           C          4x             C4x      TRUE</code></pre>
 </div>
 </div>
+<p>If you’re unfamiliar with <code>SummarizedExperiment</code> objects, please have a look at the vignette of the <em><a href="https://bioconductor.org/packages/3.22/SummarizedExperiment">SummarizedExperiment</a></em> package.</p>
 </section>
 <section id="computing-size-factors-library-sizes-and-cell-volumes" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="computing-size-factors-library-sizes-and-cell-volumes"><span class="header-section-number">2.3</span> Computing size factors: library sizes and cell volumes</h2>
+<p>Before estimating differential expression test statistics, the <em>DESeq2</em> package <span class="citation" data-cites="love2014moderated">(<a href="#ref-love2014moderated" role="doc-biblioref">Love et al. 2014</a>)</span> normalizes data using size factors stored in the <code>sizeFactors</code> variable of the <em>colData</em> slot. If this column doesn’t exist in <em>colData</em>, <em>DESeq2</em> will automatically add it using its ‘median of ratios’ method to estimate for robust library size estimation. Hence, if we want to normalize our data using different approaches, all we need to do is add a <code>sizeFactors</code> column to the <em>colData</em> slot of our <code>SummarizedExperiment</code> object, and <em>DESeq2</em> takes care of the rest. Here, we will demonstrate how to add size factors using three approaches: (i) <em>DESeq2</em>’s median of ratios method, which corrects for differences in library sizes across samples; (ii) deconvolution, which is a pooling-based approach that estimates size factors for each pool of samples (here, grouped by ploidy levels or ploidy+genotype), and then mathematically deconvolves them back to sample-specific size factors; and (iii) using spike-in standards to normalize data by cell volume.</p>
+<p>We will first create alternative version of our data without spike-in features.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Adding `sizeFactor` column to colData</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Method 1: Size factors with DESeq2's median of ratios</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>se_mr <span class="ot">&lt;-</span> se[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"ERCC"</span>, <span class="fu">rownames</span>(se)), ]</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>se_mr <span class="ot">&lt;-</span> <span class="fu">add_size_factors</span>(se_mr, <span class="at">spikein =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Method 2: Size factors with spike-in controls</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>se_si <span class="ot">&lt;-</span> se[, se<span class="sc">$</span>spike_in] <span class="co"># keep only samples with spike-ins</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>se_si <span class="ot">&lt;-</span> <span class="fu">add_size_factors</span>(se_si, <span class="at">spikein =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a><span class="do">## Method 3: Size factors with deconvolution by `genotype_ploidy` level</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>se_de <span class="ot">&lt;-</span> se[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"ERCC"</span>, <span class="fu">rownames</span>(se)), ]</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>se_de<span class="sc">$</span>sizeFactor <span class="ot">&lt;-</span> scuttle<span class="sc">::</span><span class="fu">pooledSizeFactors</span>(</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>    se_de, <span class="at">clusters =</span> se_de<span class="sc">$</span>genotype_ploidy</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>This is what size factors of each data set looks like:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(se_mr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DataFrame with 25 rows and 6 columns
+               names    genotype      ploidy genotype_ploidy  spike_in
+         &lt;character&gt; &lt;character&gt; &lt;character&gt;     &lt;character&gt; &lt;logical&gt;
+C2x_rep1    C2x_rep1           C          2x             C2x      TRUE
+C2x_rep2    C2x_rep2           C          2x             C2x      TRUE
+C2x_rep3    C2x_rep3           C          2x             C2x      TRUE
+C2x_rep4    C2x_rep4           C          2x             C2x     FALSE
+C2x_rep5    C2x_rep5           C          2x             C2x      TRUE
+...              ...         ...         ...             ...       ...
+E4x_rep1    E4x_rep1           E          4x             E4x      TRUE
+E4x_rep2    E4x_rep2           E          4x             E4x      TRUE
+E4x_rep3    E4x_rep3           E          4x             E4x      TRUE
+E4x_rep4    E4x_rep4           E          4x             E4x      TRUE
+E4x_rep5    E4x_rep5           E          4x             E4x     FALSE
+         sizeFactor
+          &lt;numeric&gt;
+C2x_rep1   0.953897
+C2x_rep2   1.167323
+C2x_rep3   0.903449
+C2x_rep4   0.305004
+C2x_rep5   0.839966
+...             ...
+E4x_rep1   1.306069
+E4x_rep2   1.031768
+E4x_rep3   1.065446
+E4x_rep4   0.980296
+E4x_rep5   1.109954</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(se_si)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DataFrame with 21 rows and 6 columns
+               names    genotype      ploidy genotype_ploidy  spike_in
+         &lt;character&gt; &lt;character&gt; &lt;character&gt;     &lt;character&gt; &lt;logical&gt;
+C2x_rep1    C2x_rep1           C          2x             C2x      TRUE
+C2x_rep2    C2x_rep2           C          2x             C2x      TRUE
+C2x_rep3    C2x_rep3           C          2x             C2x      TRUE
+C2x_rep5    C2x_rep5           C          2x             C2x      TRUE
+C4x_rep1    C4x_rep1           C          4x             C4x      TRUE
+...              ...         ...         ...             ...       ...
+E2x_rep5    E2x_rep5           E          2x             E2x      TRUE
+E4x_rep1    E4x_rep1           E          4x             E4x      TRUE
+E4x_rep2    E4x_rep2           E          4x             E4x      TRUE
+E4x_rep3    E4x_rep3           E          4x             E4x      TRUE
+E4x_rep4    E4x_rep4           E          4x             E4x      TRUE
+         sizeFactor
+          &lt;numeric&gt;
+C2x_rep1    1.16244
+C2x_rep2    1.52170
+C2x_rep3    2.11962
+C2x_rep5    2.95147
+C4x_rep1    1.56935
+...             ...
+E2x_rep5   1.225778
+E4x_rep1   0.731247
+E4x_rep2   0.759366
+E4x_rep3   0.671350
+E4x_rep4   1.036524</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(se_de)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DataFrame with 25 rows and 6 columns
+               names    genotype      ploidy genotype_ploidy  spike_in
+         &lt;character&gt; &lt;character&gt; &lt;character&gt;     &lt;character&gt; &lt;logical&gt;
+C2x_rep1    C2x_rep1           C          2x             C2x      TRUE
+C2x_rep2    C2x_rep2           C          2x             C2x      TRUE
+C2x_rep3    C2x_rep3           C          2x             C2x      TRUE
+C2x_rep4    C2x_rep4           C          2x             C2x     FALSE
+C2x_rep5    C2x_rep5           C          2x             C2x      TRUE
+...              ...         ...         ...             ...       ...
+E4x_rep1    E4x_rep1           E          4x             E4x      TRUE
+E4x_rep2    E4x_rep2           E          4x             E4x      TRUE
+E4x_rep3    E4x_rep3           E          4x             E4x      TRUE
+E4x_rep4    E4x_rep4           E          4x             E4x      TRUE
+E4x_rep5    E4x_rep5           E          4x             E4x     FALSE
+         sizeFactor
+          &lt;numeric&gt;
+C2x_rep1   0.844490
+C2x_rep2   1.098478
+C2x_rep3   0.865043
+C2x_rep4   0.312095
+C2x_rep5   0.842669
+...             ...
+E4x_rep1   1.176739
+E4x_rep2   1.051706
+E4x_rep3   1.067509
+E4x_rep4   0.945871
+E4x_rep5   1.146951</code></pre>
+</div>
+</div>
+<p>Finally, we will filter out genes with too few counts across samples. There’s no universally good cut-off here, so we’d suggest playing with different values and seeing how many genes survive the filtering. Here, we will remove genes with counts &lt;1 in &gt;=50% of the samples. To make the data analysis workflow simpler and avoid code repetition, we will combine these three objects into a list.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create list of `SummarizedExperiment` objects</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>se_list <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">MR =</span> se_mr, <span class="at">SI =</span> se_si, <span class="at">DE =</span> se_de)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter out genes with &lt;1 count in &gt;50% of the samples</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>se_list <span class="ot">&lt;-</span> <span class="fu">lapply</span>(se_list, <span class="cf">function</span>(x) {</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    n <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">ncol</span>(x) <span class="sc">*</span> <span class="fl">0.5</span>)</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    keep <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(<span class="fu">assay</span>(x) <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">&gt;=</span>n</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    x[keep, ]</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>se_list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$MR
+class: SummarizedExperiment 
+dim: 18915 25 
+metadata(0):
+assays(1): counts
+rownames(18915): AT1G01010 AT1G01020 ... ATMG01380 ATMG01390
+rowData names(0):
+colnames(25): C2x_rep1 C2x_rep2 ... E4x_rep4 E4x_rep5
+colData names(6): names genotype ... spike_in sizeFactor
+
+$SI
+class: SummarizedExperiment 
+dim: 18970 21 
+metadata(0):
+assays(1): counts
+rownames(18970): AT1G01010 AT1G01020 ... ATMG01380 ATMG01390
+rowData names(0):
+colnames(21): C2x_rep1 C2x_rep2 ... E4x_rep3 E4x_rep4
+colData names(6): names genotype ... spike_in sizeFactor
+
+$DE
+class: SummarizedExperiment 
+dim: 18915 25 
+metadata(4): tximetaInfo countsFromAbundance level assignRanges
+assays(1): counts
+rownames(18915): AT1G01010 AT1G01020 ... ATMG01380 ATMG01390
+rowData names(0):
+colnames(25): C2x_rep1 C2x_rep2 ... E4x_rep4 E4x_rep5
+colData names(6): names genotype ... spike_in sizeFactor</code></pre>
+</div>
+</div>
+<p>With this cut-off, we go from ~32k genes to ~19k genes.</p>
+</section>
+<section id="principal-component-analysis" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="principal-component-analysis"><span class="header-section-number">2.4</span> Principal component analysis</h2>
+<p>We will now perform principal component analyses for each data set to have a visual summary of our data and explore sample grouping. We will first need to apply a variance-stabilizing transformation (to remove the dependence between the mean and the variance). We will do so by using the <code>vst()</code> function from <em>DESeq2</em>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get variance-stabilized data</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>vsd_list <span class="ot">&lt;-</span> <span class="fu">lapply</span>(se_list, <span class="cf">function</span>(x) {</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    dds <span class="ot">&lt;-</span> <span class="fu">DESeqDataSet</span>(x, <span class="at">design =</span> <span class="sc">~</span> genotype <span class="sc">+</span> ploidy)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    vsd <span class="ot">&lt;-</span> <span class="fu">vst</span>(dds, <span class="at">blind =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    vsd</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Don’t worry too much about the <code>design</code> formula at this point. We’ve only included ‘genotype + ploidy’ because we want these two variables in the PCA plot, but more details will come in the next chapter. We can now get PCA plots for each data set. Note that PCA for transcriptomic data should never be performed with the full data set. Instead, we use so-called <em>highly variable features</em> to maximize biological signal. By default, the <code>plotPCA()</code> from <em>DESeq2</em> uses the top 500 genes with the highest variances, but this can have different meanings depending on the genome size. Instead, we’d suggest using a relative number (e.g., top 10% of the genes with the highest variances), so that it at least scales with the total number of genes.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get PCA plot</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>p_pca <span class="ot">&lt;-</span> <span class="fu">lapply</span>(vsd_list, <span class="cf">function</span>(x) {</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="do">## Get PCA data for top 10% genes with the highest variances</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    pca_data <span class="ot">&lt;-</span> <span class="fu">plotPCA</span>(</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>        x, <span class="at">intgroup =</span> <span class="fu">c</span>(<span class="st">"ploidy"</span>, <span class="st">"genotype"</span>), <span class="at">returnData =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">ntop =</span> <span class="fu">round</span>(<span class="fu">nrow</span>(x) <span class="sc">*</span> <span class="fl">0.1</span>)</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    <span class="do">## Plot using ggplot</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    pct_var <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">attr</span>(pca_data, <span class="st">"percentVar"</span>))</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(pca_data, <span class="fu">aes</span>(<span class="at">x =</span> PC1, <span class="at">y =</span> PC2)) <span class="sc">+</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> ploidy, <span class="at">shape =</span> genotype), <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">xlab</span>(<span class="fu">paste0</span>(<span class="st">"PC1: "</span>, pct_var[<span class="dv">1</span>], <span class="st">"% variance"</span>)) <span class="sc">+</span></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ylab</span>(<span class="fu">paste0</span>(<span class="st">"PC2: "</span>, pct_var[<span class="dv">2</span>], <span class="st">"% variance"</span>)) <span class="sc">+</span></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">palette.colors</span>()) <span class="sc">+</span></span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">color =</span> <span class="st">"Ploidy"</span>, <span class="at">shape =</span> <span class="st">"Genotype"</span>)</span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>}) </span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine plots into a multi-panel figure</span></span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a><span class="fu">wrap_plots</span>(</span>
+<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a>    p_pca<span class="sc">$</span>MR <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"Median of ratios"</span>),</span>
+<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a>    p_pca<span class="sc">$</span>DE <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"Deconvolution"</span>),</span>
+<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a>    p_pca<span class="sc">$</span>SI <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"Spike-in"</span>),</span>
+<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">nrow =</span> <span class="dv">1</span></span>
+<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">plot_layout</span>(<span class="at">guides =</span> <span class="st">"collect"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="02_normalization_and_eda_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The figure shows that <em>DESeq2</em>’s median of ratios and the deconvolution-based approach produce similar results, so we can simply choose one of them to avoid replicating the same analysis 3 times. Expectedly, these two methods produce different results compared to spike-in normalization, so we will need to keep the spike-in-normalized data as a separate data set.</p>
+<p>When normalizing by library size (with <em>DESeq2</em> or deconvolution), we see that PC1 mostly separates samples based on genotype. At the per cell level, however, genotypes are separated in PC2, and PC1 doesn’t seem to separate samples by any of the variables we’re interested in. In all cases, samples from the same ploidy+genotype seem to group well together, although outliers exist. It’s also important to look at other PCs, as they might contain additional information on sample grouping. To plot other PCs (e.g., PC1 vs PC3), you’d need to modify the code above to include <code>pcsToUse = c(1, 3)</code> in <code>plotPCA()</code>.</p>
+</section>
+<section id="wrapping-up" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="wrapping-up">Wrapping up</h2>
+<p>We will now save <code>SummarizedExperiment</code> objects to <code>.rds</code> files for further reuse in the following chapters. Since <em>DESeq2</em> normalization and deconvolution produce equivalent results, we will only save the former.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Save `SummarizedExperiment` objects to RDS files</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="do">## DESeq2 normalization</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    se_list<span class="sc">$</span>MR, <span class="at">compress =</span> <span class="st">"xz"</span>,</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">file =</span> <span class="fu">here</span>(<span class="st">"products"</span>, <span class="st">"results"</span>, <span class="st">"se_deseq2.rds"</span>)</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Spike ins</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    se_list<span class="sc">$</span>SI, <span class="at">compress =</span> <span class="st">"xz"</span>,</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">file =</span> <span class="fu">here</span>(<span class="st">"products"</span>, <span class="st">"results"</span>, <span class="st">"se_spikein.rds"</span>)</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 </section>
 <section id="session-info" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="session-info">Session info</h2>
@@ -531,19 +821,27 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Brussels
- date     2026-09-24
+ date     2026-09-25
  pandoc   3.6.3 @ /usr/lib/rstudio/resources/app/bin/quarto/bin/tools/x86_64/ (via rmarkdown)
  quarto   1.8.25 @ /usr/local/bin/quarto
 
 ─ Packages ───────────────────────────────────────────────────────────────────
  package              * version   date (UTC) lib source
  abind                  1.4-8     2024-09-12 [1] CRAN (R 4.5.2)
+ AnnotationDbi          1.72.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ AnnotationFilter       1.34.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ AnnotationHub          4.0.0     2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  archive                1.1.14    2026-07-30 [1] CRAN (R 4.5.2)
+ beachmat               2.26.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  Biobase              * 2.70.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  BiocFileCache          3.0.0     2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  BiocGenerics         * 0.56.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  BiocIO                 1.20.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ BiocManager            1.30.27   2025-11-14 [1] CRAN (R 4.5.2)
  BiocParallel           1.44.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ BiocStyle              2.38.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ BiocVersion            3.22.0    2025-10-07 [1] Bioconductor 3.22 (R 4.5.2)
+ biomaRt                2.66.2    2026-03-13 [1] Bioconductor 3.22 (R 4.5.2)
  Biostrings             2.78.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  bit                    4.6.0     2025-03-06 [1] CRAN (R 4.5.2)
  bit64                  4.6.0-1   2025-01-16 [1] CRAN (R 4.5.2)
@@ -551,25 +849,38 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
  blob                   1.3.0     2026-01-14 [1] CRAN (R 4.5.2)
  cachem                 1.1.0     2024-05-16 [1] CRAN (R 4.5.2)
  cigarillo              1.0.0     2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ circlize               0.4.17    2025-12-08 [1] CRAN (R 4.5.2)
  cli                    3.6.5     2025-04-23 [1] CRAN (R 4.5.2)
+ clue                   0.3-67    2026-02-18 [1] CRAN (R 4.5.2)
+ cluster                2.1.8.1   2025-03-12 [4] CRAN (R 4.4.3)
  codetools              0.2-19    2023-02-01 [4] CRAN (R 4.2.2)
+ colorspace             2.1-2     2025-09-22 [1] CRAN (R 4.5.2)
+ ComplexHeatmap         2.26.1    2026-02-03 [1] Bioconductor 3.22 (R 4.5.2)
  crayon                 1.5.3     2024-06-20 [1] CRAN (R 4.5.2)
  curl                   7.0.0     2025-08-19 [1] CRAN (R 4.5.2)
  DBI                    1.2.3     2024-06-02 [1] CRAN (R 4.5.2)
  dbplyr                 2.5.1     2025-09-10 [1] CRAN (R 4.5.2)
  DelayedArray           0.36.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ DESeq2               * 1.50.2    2025-11-13 [1] Bioconductor 3.22 (R 4.5.2)
  digest                 0.6.39    2025-11-19 [1] CRAN (R 4.5.2)
+ doParallel             1.0.17    2022-02-07 [1] CRAN (R 4.5.2)
  dplyr                * 1.1.4     2023-11-17 [1] CRAN (R 4.5.2)
+ ensembldb              2.34.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  evaluate               1.0.5     2025-08-27 [1] CRAN (R 4.5.2)
  farver                 2.1.2     2024-05-13 [1] CRAN (R 4.5.2)
  fastmap                1.2.0     2024-05-15 [1] CRAN (R 4.5.2)
  filelock               1.0.3     2023-12-11 [1] CRAN (R 4.5.2)
  forcats              * 1.0.1     2025-09-25 [1] CRAN (R 4.5.2)
+ foreach                1.5.2     2022-02-02 [1] CRAN (R 4.5.2)
  fs                   * 1.6.6     2025-04-12 [1] CRAN (R 4.5.2)
  generics             * 0.1.4     2025-05-09 [1] CRAN (R 4.5.2)
+ GenomeInfoDb           1.46.2    2025-12-04 [1] Bioconductor 3.22 (R 4.5.2)
  GenomicAlignments      1.46.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ GenomicFeatures        1.62.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  GenomicRanges        * 1.62.1    2025-12-08 [1] Bioconductor 3.22 (R 4.5.2)
+ GetoptLong             1.1.0     2025-11-28 [1] CRAN (R 4.5.2)
  ggplot2              * 4.0.1     2025-11-14 [1] CRAN (R 4.5.2)
+ GlobalOptions          0.1.3     2025-11-28 [1] CRAN (R 4.5.2)
  glue                   1.8.0     2024-09-30 [1] CRAN (R 4.5.2)
  gtable                 0.3.6     2024-10-25 [1] CRAN (R 4.5.2)
  here                 * 1.0.2     2025-09-15 [1] CRAN (R 4.5.2)
@@ -578,11 +889,17 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
  htmlwidgets            1.6.4     2023-12-06 [1] CRAN (R 4.5.2)
  httr                   1.4.7     2023-08-15 [1] CRAN (R 4.5.2)
  httr2                  1.2.2     2025-12-08 [1] CRAN (R 4.5.2)
+ HybridExpress        * 1.6.0     2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  IRanges              * 2.44.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
+ iterators              1.0.14    2022-02-05 [1] CRAN (R 4.5.2)
  jsonlite               2.0.0     2025-03-27 [1] CRAN (R 4.5.2)
+ KEGGREST               1.50.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  knitr                  1.51      2025-12-20 [1] CRAN (R 4.5.2)
+ labeling               0.4.3     2023-08-29 [1] CRAN (R 4.5.2)
  lattice                0.22-5    2023-10-24 [4] CRAN (R 4.3.1)
+ lazyeval               0.2.2     2019-03-15 [1] CRAN (R 4.5.2)
  lifecycle              1.0.5     2026-01-08 [1] CRAN (R 4.5.2)
+ locfit                 1.5-9.12  2025-03-05 [1] CRAN (R 4.5.2)
  lubridate            * 1.9.4     2024-12-08 [1] CRAN (R 4.5.2)
  magrittr               2.0.4     2025-09-12 [1] CRAN (R 4.5.2)
  Matrix                 1.7-4     2025-08-28 [4] CRAN (R 4.5.1)
@@ -590,12 +907,18 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
  matrixStats          * 1.5.0     2025-01-07 [1] CRAN (R 4.5.2)
  memoise                2.0.1     2021-11-26 [1] CRAN (R 4.5.2)
  otel                   0.2.0     2025-08-29 [1] CRAN (R 4.5.2)
+ patchwork            * 1.3.2     2025-08-25 [1] CRAN (R 4.5.2)
  pillar                 1.11.1    2025-09-17 [1] CRAN (R 4.5.2)
  pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.5.2)
+ png                    0.1-8     2022-11-29 [1] CRAN (R 4.5.2)
+ prettyunits            1.2.0     2023-09-24 [1] CRAN (R 4.5.2)
+ progress               1.2.3     2023-12-06 [1] CRAN (R 4.5.2)
+ ProtGenerics           1.42.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  purrr                * 1.2.1     2026-01-09 [1] CRAN (R 4.5.2)
  R6                     2.6.1     2025-02-15 [1] CRAN (R 4.5.2)
  rappdirs               0.3.4     2026-01-17 [1] CRAN (R 4.5.2)
  RColorBrewer           1.1-3     2022-04-03 [1] CRAN (R 4.5.2)
+ Rcpp                   1.1.1     2026-01-10 [1] CRAN (R 4.5.2)
  RCurl                  1.98-1.17 2025-03-22 [1] CRAN (R 4.5.2)
  readr                * 2.1.6     2025-11-14 [1] CRAN (R 4.5.2)
  restfulr               0.0.16    2025-06-27 [1] CRAN (R 4.5.2)
@@ -612,8 +935,11 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
  S4Vectors            * 0.48.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  S7                     0.2.1     2025-11-14 [1] CRAN (R 4.5.2)
  scales                 1.4.0     2025-04-24 [1] CRAN (R 4.5.2)
+ scuttle                1.20.0    2025-10-30 [1] Bioconductor 3.22 (R 4.5.2)
  Seqinfo              * 1.0.0     2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  sessioninfo            1.2.3     2025-02-05 [1] CRAN (R 4.5.2)
+ shape                  1.4.6.1   2024-02-23 [1] CRAN (R 4.5.2)
+ SingleCellExperiment   1.32.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
  SparseArray            1.10.8    2025-12-18 [1] Bioconductor 3.22 (R 4.5.2)
  stringi                1.8.7     2025-03-27 [1] CRAN (R 4.5.2)
  stringr              * 1.6.0     2025-11-04 [1] CRAN (R 4.5.2)
@@ -623,8 +949,12 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
  tidyselect             1.2.1     2024-03-11 [1] CRAN (R 4.5.2)
  tidyverse            * 2.0.0     2023-02-22 [1] CRAN (R 4.5.2)
  timechange             0.3.0     2024-01-18 [1] CRAN (R 4.5.2)
- tximport             * 1.38.2    2025-12-22 [1] Bioconductor 3.22 (R 4.5.2)
+ txdbmaker              1.6.2     2025-12-11 [1] Bioconductor 3.22 (R 4.5.2)
+ tximeta              * 1.28.3    2026-02-05 [1] Bioconductor 3.22 (R 4.5.2)
+ tximport               1.38.2    2025-12-22 [1] Bioconductor 3.22 (R 4.5.2)
  tzdb                   0.5.0     2025-03-15 [1] CRAN (R 4.5.2)
+ UCSC.utils             1.6.1     2025-12-11 [1] Bioconductor 3.22 (R 4.5.2)
+ utf8                   1.2.6     2025-06-08 [1] CRAN (R 4.5.2)
  vctrs                  0.7.1     2026-01-23 [1] CRAN (R 4.5.2)
  vroom                  1.6.7     2025-11-28 [1] CRAN (R 4.5.2)
  withr                  3.0.2     2024-10-28 [1] CRAN (R 4.5.2)
@@ -648,6 +978,12 @@ C4x_rep1           C          4x             C4x      TRUE</code></pre>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-love2014moderated" class="csl-entry" role="listitem">
+Love, Michael I, Wolfgang Huber, and Simon Anders. 2014. <span>“Moderated Estimation of Fold Change and Dispersion for RNA-Seq Data with DESeq2.”</span> <em>Genome Biology</em> 15 (12): 550.
+</div>
+<div id="ref-love2020tximeta" class="csl-entry" role="listitem">
+Love, Michael I, Charlotte Soneson, Peter F Hickey, et al. 2020. <span>“Tximeta: Reference Sequence Checksums for Provenance Identification in RNA-Seq.”</span> <em>PLoS Computational Biology</em> 16 (2): e1007664.
+</div>
 <div id="ref-patro2017salmon" class="csl-entry" role="listitem">
 Patro, Rob, Geet Duggal, Michael I Love, Rafael A Irizarry, and Carl Kingsford. 2017. <span>“Salmon Provides Fast and Bias-Aware Quantification of Transcript Expression.”</span> <em>Nature Methods</em> 14 (4): 417–19.
 </div>
