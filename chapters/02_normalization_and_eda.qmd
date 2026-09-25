@@ -26,8 +26,11 @@ library(here)
 library(tidyverse)
 library(rplaza)
 library(fs)
-library(tximport)
+library(tximeta)
 library(SummarizedExperiment)
+library(HybridExpress)
+library(DESeq2)
+library(patchwork)
 
 set.seed(123) # for reproducibility
 ```
@@ -71,8 +74,7 @@ Zenodo dataset.
 coldata <- read_tsv(
     "https://zenodo.org/records/22938731/files/sample_metadata.tsv?download=1",
     show_col_types = FALSE
-) |>
-    tibble::column_to_rownames("sample")
+)
 
 head(coldata)
 ```
@@ -84,16 +86,47 @@ reliable in particular samples).
 
 ## Data import: from `quant.sf` files to a `SummarizedExperiment` object
 
-To import data from `quant.sf` files, we will use the _tximport_ package
-[@soneson2016differential]. For that, we need to specify the paths to
-all `quant.sf` files, as well as a table of transcript-to-gene ID mappings.
-This is because transcriptomics quantifies **transcript abundances**, but 
-we're often interested in analyzing data at the gene level. Hence, we need
-to aggregate transcript-level abundances to gene-level abundances.
+To import data from `quant.sf` files, we will use the _tximeta_ package
+[@love2020tximeta]. For that, we need to create a data frame with columns
+`files` (paths to `quant.sf` files produced by salmon), and `names` (names
+to be used as sample IDs).
 
-There are many ways you can obtain correspondence tables between transcripts
-and genes (e.g., from GTF files, from headers in the FASTA files for 
-transcripts, etc). The PLAZA database [@van2022plaza] for comparative plant genomics
+```{r}
+# Get paths to `quant.sf` files
+qfiles <- list.files(
+    salmon_dir, recursive = TRUE, pattern = "\\.sf", full.names = TRUE
+)
+head(qfiles)
+
+# Create data frame required by {tximeta}
+tximeta_df <-data.frame(files = qfiles, names = basename(dirname(qfiles)))
+head(tximeta_df)
+
+# Merge with `coldata` to include additional metadata variables
+coldata <- left_join(tximeta_df, coldata, by = c("names" = "sample"))
+head(coldata)
+```
+
+We can now import transcript abundances with the `tximeta()` function, which 
+returns a `SummarizedExperiment` object with a count matrix of transcript 
+abundances across samples, as well as sample metadata in the *coldata* slot.
+
+```{r}
+# Get `SummarizedExperiment object
+se_tx <- tximeta(coldata, skipMeta = TRUE)
+se_tx
+```
+
+Note that assays contain >54k features.
+This is because transcriptomics quantifies **transcript abundances**, so our
+estimates are at the transcript level. However, we're often interested in
+abundances at the gene level (e.g., to find differentially expressed genes).
+Hence, we will need to aggregate our transcript-level abundances to
+gene-level abundances. To so do, we will need a correspondence table
+between transcript IDs and gene IDs (i.e., transcripts and their parent genes).
+There are many ways you can obtain such tables (e.g., from GTF files, 
+from headers in the FASTA files for transcripts, etc). 
+The PLAZA database [@van2022plaza] for comparative plant genomics
 already provides such tables for all of its ~150 species, so we will retrieve
 it from there.
 
@@ -106,21 +139,27 @@ ath_tx2gene <- rplaza::get_id_conversions("ath") |>
 head(ath_tx2gene)
 ```
 
-Note that the order of the columns matter: transcript IDs must be in column 1,
-and their corresponding parent gene IDs in column 2. We will need the paths
-to all `quant.sf` files. This can be obtained with:
+If you have spike-in controls in your data, you will also need to add those
+to the `tx2gene` table. In our data, feature IDs of spike-in standards
+start with 'ERCC'.
 
 ```{r}
-# Define paths to `quant.sf` files
-qfiles <- list.files(
-    salmon_dir, recursive = TRUE, pattern = "\\.sf", full.names = TRUE
-)
+# Adding ERCC features (spike-ins) to `tx2gene`
+tx2gene_ercc <- data.frame(txid = rownames(se_tx)) |>
+    filter(str_detect(txid, "^ERCC")) |>
+    mutate(geneid = str_replace_all(txid, "_gene", ""))
 
-head(qfiles)
+head(tx2gene_ercc)
+
+tx2gene <- bind_rows(ath_tx2gene, tx2gene_ercc)
+
+head(tx2gene)
+tail(tx2gene)
 ```
 
-With that, we can import a table of gene-level transcript abundances 
-across samples. One of the main advantages of using _tximport_ is that
+We can then aggregate our transcript abundances to the gene level using
+the `summarizeToGene()` function from _tximport_ [@soneson2016differential]. 
+One of the main advantages of this method is that
 it aggregates transcript-level abundances to gene-level abundances while
 correcting for differences in transcript lengths (i.e., because longer
 transcripts tend to have more reads mapped to them). However, since we have
@@ -129,58 +168,210 @@ we didn't sequence full transcripts. Hence, we will not correct for transcript
 length biases here. We can import abundances with:
 
 ```{r}
-# Import gene-level tx abundances across samples
-counts <- tximport(
-    qfiles, type = "salmon", tx2gene = ath_tx2gene, countsFromAbundance = "no"
-)$counts
-
-# Add proper column names (sample IDs)
-colnames(counts) <- basename(dirname(qfiles))
-
-# Make sure values are integers
-counts <- round(counts)
-
-# Taking a look at the matrix
-head(counts)
+# Aggregate abundances to the gene level
+se <- summarizeToGene(
+    se_tx, tx2gene = tx2gene, countsFromAbundance = "no", skipRanges = TRUE
+)
+se
 ```
 
-In the Bioconductor ecosystem, package developers and users rely on 
-the `SummarizedExperiment` class to store quantitative data and associated 
-metadata. This ensures packages can seamless interoperate with each other,
-and makes data analysis workflows simpler. We can create a 
-`SummarizedExperiment` object with:
+We will also remove unnecessary assays and make sure our counts are integers
+(required by _DESeq2_).
 
 ```{r}
-# Making sure sample IDs in `coldata` match column names in `counts`
-coldata <- coldata[match(rownames(coldata), colnames(counts)), ]
+# Remove `abundance` and `length` assays
+assay(se, "abundance") <- NULL
+assay(se, "length") <- NULL
 
-# Creating a `SummarizedExperiment` object
-se <- SummarizedExperiment(
-    assays = list(counts = counts),
-    colData = coldata
-)
+# Round `counts` assay
+assay(se, "counts") <- round(assay(se, "counts"))
 
 se
 ```
 
-In a `SummarizedExperiment` object, matrices are stored in the *assays* slot
-(only one here, named `counts`), and column (i.e., sample) metadata is
-stored in the *colData* slot. To access assays and colData, you can the 
-following accessor functions:
+This is what the count matrix and coldata (sample metadata) look like:
 
 ```{r}
-# Accessing first assay
 assay(se, "counts") |> head()
-
-#  Accessing colData 
 colData(se) |> head()
 ```
 
+If you're unfamiliar with `SummarizedExperiment` objects, please
+have a look at the vignette of the `r BiocStyle::Biocpkg("SummarizedExperiment")`
+package.
+
 ## Computing size factors: library sizes and cell volumes
 
+Before estimating differential expression test statistics, the _DESeq2_ 
+package [@love2014moderated] normalizes data using size factors
+stored in the `sizeFactors` variable of the *colData* slot. If this column
+doesn't exist in *colData*, _DESeq2_ will automatically add it using its
+'median of ratios' method to estimate for robust library size estimation. Hence,
+if we want to normalize our data using different approaches, all we need
+to do is add a `sizeFactors` column to the *colData* slot of our 
+`SummarizedExperiment` object, and _DESeq2_ takes care of the rest.
+Here, we will demonstrate how to add size factors using three
+approaches: (i) _DESeq2_'s median of ratios method, which corrects for 
+differences in library sizes across samples; (ii) deconvolution, which is
+a pooling-based approach that estimates size factors for each pool of samples 
+(here, grouped by ploidy levels or ploidy+genotype), and then mathematically
+deconvolves them back to sample-specific size factors; and (iii) using spike-in
+standards to normalize data by cell volume.
 
+We will first create alternative version of our data without spike-in
+features.
 
+```{r}
+# Adding `sizeFactor` column to colData
+## Method 1: Size factors with DESeq2's median of ratios
+se_mr <- se[!grepl("ERCC", rownames(se)), ]
+se_mr <- add_size_factors(se_mr, spikein = FALSE)
 
+## Method 2: Size factors with spike-in controls
+se_si <- se[, se$spike_in] # keep only samples with spike-ins
+se_si <- add_size_factors(se_si, spikein = TRUE)
+
+## Method 3: Size factors with deconvolution by `genotype_ploidy` level
+se_de <- se[!grepl("ERCC", rownames(se)), ]
+se_de$sizeFactor <- scuttle::pooledSizeFactors(
+    se_de, clusters = se_de$genotype_ploidy
+)
+```
+
+This is what size factors of each data set looks like:
+
+```{r}
+colData(se_mr)
+colData(se_si)
+colData(se_de)
+```
+
+Finally, we will filter out genes with too few counts across samples.
+There's no universally good cut-off here, so we'd suggest playing with 
+different values and seeing how many genes survive the filtering. Here,
+we will remove genes with counts <1 in >=50% of the samples. To make the 
+data analysis workflow simpler and avoid code repetition, we will combine 
+these three objects into a list.
+
+```{r}
+# Create list of `SummarizedExperiment` objects
+se_list <- list(MR = se_mr, SI = se_si, DE = se_de)
+
+# Filter out genes with <1 count in >50% of the samples
+se_list <- lapply(se_list, function(x) {
+    n <- round(ncol(x) * 0.5)
+    keep <- rowSums(assay(x) > 1) >=n
+    x[keep, ]
+})
+
+se_list
+```
+
+With this cut-off, we go from ~32k genes to ~19k genes.
+
+## Principal component analysis
+
+We will now perform principal component analyses for each data set to
+have a visual summary of our data and explore sample grouping. We will
+first need to apply a variance-stabilizing transformation (to remove the
+dependence between the mean and the variance). We will do so by using the 
+`vst()` function from _DESeq2_.
+
+```{r}
+# Get variance-stabilized data
+vsd_list <- lapply(se_list, function(x) {
+    
+    dds <- DESeqDataSet(x, design = ~ genotype + ploidy)
+    vsd <- vst(dds, blind = TRUE)
+    
+    vsd
+})
+```
+
+Don't worry too much about the `design` formula at this point. We've only 
+included 'genotype + ploidy' because we want these two variables in the
+PCA plot, but more details will come in the next chapter. We can now get
+PCA plots for each data set. Note that PCA for transcriptomic data should never
+be performed with the full data set. Instead, we use so-called
+*highly variable features* to maximize biological signal. By default, the
+`plotPCA()` from _DESeq2_ uses the top 500 genes with the highest variances,
+but this can have different meanings depending on the genome size. Instead,
+we'd suggest using a relative number (e.g., top 10% of the
+genes with the highest variances), so that it at least scales with the
+total number of genes.
+
+```{r}
+#| fig-width: 9
+#| fig-height: 3
+
+# Get PCA plot
+p_pca <- lapply(vsd_list, function(x) {
+    
+    ## Get PCA data for top 10% genes with the highest variances
+    pca_data <- plotPCA(
+        x, intgroup = c("ploidy", "genotype"), returnData = TRUE, 
+        ntop = round(nrow(x) * 0.1)
+    )
+    
+    ## Plot using ggplot
+    pct_var <- round(100 * attr(pca_data, "percentVar"))
+    ggplot(pca_data, aes(x = PC1, y = PC2)) +
+        geom_point(aes(color = ploidy, shape = genotype), size = 5) +
+        theme_classic() +
+        xlab(paste0("PC1: ", pct_var[1], "% variance")) +
+        ylab(paste0("PC2: ", pct_var[2], "% variance")) +
+        scale_color_manual(values = palette.colors()) +
+        labs(color = "Ploidy", shape = "Genotype")
+}) 
+
+# Combine plots into a multi-panel figure
+wrap_plots(
+    p_pca$MR + labs(subtitle = "Median of ratios"),
+    p_pca$DE + labs(subtitle = "Deconvolution"),
+    p_pca$SI + labs(subtitle = "Spike-in"),
+    nrow = 1
+) +
+    plot_layout(guides = "collect")
+```
+
+The figure shows that _DESeq2_'s median of ratios and the deconvolution-based
+approach produce similar results, so we can simply choose one of them to
+avoid replicating the same analysis 3 times. Expectedly, these
+two methods produce different results compared to spike-in normalization,
+so we will need to keep the spike-in-normalized data as a separate data set.
+
+When normalizing by library size (with _DESeq2_ or deconvolution), we
+see that PC1 mostly separates samples based on genotype. At the per cell level,
+however, genotypes are separated in PC2, and PC1 doesn't seem to separate
+samples by any of the variables we're interested in. In all cases, samples
+from the same ploidy+genotype seem to group well together, although outliers
+exist. It's also important to look at other PCs, as they might contain
+additional information on sample grouping. To plot other PCs (e.g., PC1 vs PC3),
+you'd need to modify the code above to include `pcsToUse = c(1, 3)` in 
+`plotPCA()`.
+
+## Wrapping up {.unnumbered}
+
+We will now save `SummarizedExperiment` objects to `.rds` files for 
+further reuse in the following chapters. Since _DESeq2_ normalization and 
+deconvolution produce equivalent results, we will only save the former.
+
+```{r}
+#| eval: false
+
+# Save `SummarizedExperiment` objects to RDS files
+## DESeq2 normalization
+saveRDS(
+    se_list$MR, compress = "xz",
+    file = here("products", "results", "se_deseq2.rds")
+)
+
+## Spike ins
+saveRDS(
+    se_list$SI, compress = "xz",
+    file = here("products", "results", "se_spikein.rds")
+)
+```
 
 ## Session info {.unnumbered}
 
