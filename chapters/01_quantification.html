@@ -61,7 +61,26 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -194,8 +213,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#section-1" id="toc-section-1" class="nav-link active" data-scroll-target="#section-1"><span class="header-section-number">1.1</span> Section 1</a></li>
-  <li><a href="#section-2" id="toc-section-2" class="nav-link" data-scroll-target="#section-2"><span class="header-section-number">1.2</span> Section 2</a></li>
+  <li><a href="#introduction-to-the-nf-corernaseq-pipeline" id="toc-introduction-to-the-nf-corernaseq-pipeline" class="nav-link active" data-scroll-target="#introduction-to-the-nf-corernaseq-pipeline"><span class="header-section-number">1.1</span> Introduction to the <em>nf-core/rnaseq</em> pipeline</a></li>
+  <li><a href="#obtaining-the-example-data-set" id="toc-obtaining-the-example-data-set" class="nav-link" data-scroll-target="#obtaining-the-example-data-set"><span class="header-section-number">1.2</span> Obtaining the example data set</a></li>
+  <li><a href="#executing-the-pipeline" id="toc-executing-the-pipeline" class="nav-link" data-scroll-target="#executing-the-pipeline"><span class="header-section-number">1.3</span> Executing the pipeline</a></li>
   <li><a href="#session-info" id="toc-session-info" class="nav-link" data-scroll-target="#session-info">Session info</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
@@ -223,16 +243,142 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>) <span class="co"># for reproducibility</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<section id="section-1" class="level2" data-number="1.1">
-<h2 data-number="1.1" class="anchored" data-anchor-id="section-1"><span class="header-section-number">1.1</span> Section 1</h2>
+<p>In this chapter, you will learn how to generate transcript abundance files from FASTQ files using the <a href="https://nf-co.re/rnaseq/3.26.0/">nf-core/rnaseq</a> Nextflow pipeline. At the end of this chapter, you will be able to: - Understand the overall workflow of <em>nf-core/rnaseq</em> - Adjust pipeline parameters for different types of RNA-seq datasets, including single- or paired-end sequencing data, and datasets with or without spike-in standards.</p>
+<section id="introduction-to-the-nf-corernaseq-pipeline" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="introduction-to-the-nf-corernaseq-pipeline"><span class="header-section-number">1.1</span> Introduction to the <em>nf-core/rnaseq</em> pipeline</h2>
+<p>The <a href="https://nf-co.re/rnaseq/3.26.0/">nf-core/rnaseq</a> pipeline is a standardized bioinformatics pipeline built using Nextflow, a workflow management system designed to enable reproducible and scalable computational analyses. The <em>nf-core/rnaseq</em> pipeline provides an integrated workflow for processing RNA-seq data. The pipeline performs quality control (QC), trimming and alignment, and produces a gene expression matrix (i.e., transcript abundance files) and extensive QC report. <a href="https://nf-co.re/">nf-core</a> is a global community collaborating to build open-source Nextflow components and pipelines <span class="citation" data-cites="ewels2020nf">(<a href="#ref-ewels2020nf" role="doc-biblioref">Ewels et al. 2020</a>)</span>.</p>
 </section>
-<section id="section-2" class="level2" data-number="1.2">
-<h2 data-number="1.2" class="anchored" data-anchor-id="section-2"><span class="header-section-number">1.2</span> Section 2</h2>
+<section id="obtaining-the-example-data-set" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="obtaining-the-example-data-set"><span class="header-section-number">1.2</span> Obtaining the example data set</h2>
+<p>Our example data set contains sequencing reads (FASTQ files) from 2 <em>Arabidopsis thaliana</em> genotypes, and three ploidy levels (2x, 4x, and 8x; see <em>Preface</em> for details). For the sake of demonstration, each example file contains only the first 5,000 reads from the corresponding original FASTQ file. Let’s download the example data from Zenodo and store them in a directory named <code>rnaseq_data</code> in the temporary directory (<code>/tmp/</code>). The <code>FASTQ_example</code> folder contains 25 example FASTQ files.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the `FASTQ_example` folder to `/tmp/rnaseq_data/`</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> /tmp/rnaseq_data</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">## `FASTQ_example/`</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">-O</span> /tmp/rnaseq_data/FASTQ_example.zip <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://zenodo.org/records/22938731/files/FASTQ_example.zip?download=1"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">unzip</span> /tmp/rnaseq_data/FASTQ_example.zip <span class="at">-d</span> /tmp/rnaseq_data <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> /tmp/rnaseq_data/FASTQ_example.zip</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">## `nextflow_metadata.csv`</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">-O</span> /tmp/rnaseq_data/nextflow_metadata.csv <span class="dt">\</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://zenodo.org/records/22938731/files/nextflow_metadata.csv?download=1"</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">sed</span> <span class="at">-i</span> <span class="st">'s|/blue/soltis/shan158538/PI3_node-1/tutorial/fastq_files_download/|/tmp/rnaseq_data/FASTQ_example/|g'</span> /tmp/rnaseq_data/nextflow_metadata.csv</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Reference genome (FASTA)</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">-O</span> /tmp/rnaseq_data/Athaliana_TAIR10.fa.gz <span class="dt">\</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-63/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz"</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">## Reference annotation (GTF)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">-O</span> /tmp/rnaseq_data/Athaliana_TAIR10.gtf.gz <span class="dt">\</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-63/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.63.gtf.gz"</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">## Sequences of spike-in standards (FASTA)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">-O</span> /tmp/rnaseq_data/ERCC92.zip <span class="dt">\</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://assets.thermofisher.com/TFS-Assets/LSG/manuals/ERCC92.zip"</span> <span class="kw">&amp;&amp;</span> <span class="dt">\</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unzip</span> <span class="at">-j</span> /tmp/rnaseq_data/ERCC92.zip ERCC92.fa <span class="at">-d</span> /tmp/rnaseq_data <span class="kw">&amp;&amp;</span> <span class="dt">\</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rm</span> /tmp/rnaseq_data/ERCC92.zip</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>After downloading all files, this is what the folder looks like:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tree /tmp/rnaseq_data/</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;/tmp/rnaseq_data/</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;├── Athaliana_TAIR10.fa.gz</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;├── Athaliana_TAIR10.gtf.gz</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;├── ERCC92.fa</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;├── FASTQ_example</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_20_sample_20_first5000.fastq.gz</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_21_sample_21_first5000.fastq.gz</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_22_sample_22_first5000.fastq.gz</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_23_sample_23_first5000.fastq.gz</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_24_sample_24_first5000.fastq.gz</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_25_sample_25_first5000.fastq.gz</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_26_sample_26_first5000.fastq.gz</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_27_sample_27_first5000.fastq.gz</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_28_sample_28_first5000.fastq.gz</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_29_sample_29_first5000.fastq.gz</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_30_sample_30_first5000.fastq.gz</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_31_sample_31_first5000.fastq.gz</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_32_sample_32_first5000.fastq.gz</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_33_sample_33_first5000.fastq.gz</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_34_sample_34_first5000.fastq.gz</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_45_sample_45_first5000.fastq.gz</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_46_sample_46_first5000.fastq.gz</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_47_sample_47_first5000.fastq.gz</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_48_sample_48_first5000.fastq.gz</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_49_sample_49_first5000.fastq.gz</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_50_sample_50_first5000.fastq.gz</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_51_sample_51_first5000.fastq.gz</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_52_sample_52_first5000.fastq.gz</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   ├── CMQCZ8_53_sample_53_first5000.fastq.gz</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;│   └── CMQCZ8_54_sample_54_first5000.fastq.gz</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;└── nextflow_metadata.csv</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;1 directory, 29 files</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>For the input samplesheet file (i.e., <code>nextflow_metadata.csv</code>), the first four columns must be <code>sample</code>, <code>fastq1</code>, <code>fastq2</code>, and <code>strandedness</code> (in this exact order). The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The strandedness column can be set to ‘auto’, allowing the pipeline to infer the library strandedness. Additional columns can be included in the samplesheet as needed, but the first four columns must follow the format and order described above.</p>
+<p>This is what our samplesheet file looks like:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> head /tmp/rnaseq_data/nextflow_metadata.csv </span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;sample,fastq_1,fastq_2,strandedness</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C2x_rep1,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_20_sample_20_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C2x_rep2,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_21_sample_21_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C2x_rep3,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_22_sample_22_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C2x_rep4,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_23_sample_23_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C2x_rep5,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_24_sample_24_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C4x_rep1,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_25_sample_25_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C4x_rep2,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_26_sample_26_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C4x_rep3,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_27_sample_27_first5000.fastq.gz,,auto</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;C4x_rep4,/tmp/rnaseq_data/FASTQ_example/CMQCZ8_28_sample_28_first5000.fastq.gz,,auto</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="executing-the-pipeline" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="executing-the-pipeline"><span class="header-section-number">1.3</span> Executing the pipeline</h2>
+<p>In our workflow, we run the pipeline to execute the following steps: basic QC with <em>FastQC</em> <span class="citation" data-cites="bioinformatics2011fastqc">(<a href="#ref-bioinformatics2011fastqc" role="doc-biblioref">Bioinformatics 2011</a>)</span>, read trimming with <em>fastp</em> <span class="citation" data-cites="chen2018fastp">(<a href="#ref-chen2018fastp" role="doc-biblioref">Chen et al. 2018</a>)</span>, read mapping to the reference genome with <em>STAR</em> <span class="citation" data-cites="dobin2013star">(<a href="#ref-dobin2013star" role="doc-biblioref">Dobin et al. 2013</a>)</span>, and transcript abundance quantification with <em>salmon</em> <span class="citation" data-cites="patro2017salmon">(<a href="#ref-patro2017salmon" role="doc-biblioref">Patro et al. 2017</a>)</span>. For each of these steps, you can either go with default parameters, or specify custom options in a <code>params.yml</code> file. Our <code>params.yml</code> looks like this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aligner:</span> star_salmon</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">seq_platform:</span> ILLUMINA</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">trimmer:</span> fastp</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">with_umi:</span> true</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">skip_umi_extract:</span> true</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">umitools_umi_separator:</span> <span class="st">"_"</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ex">extra_salmon_quant_args:</span> <span class="st">"--noLengthCorrection"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Of note, we’re using <code>--noLengthCorrection</code> in <em>salmon</em> because our data were generated with 3’ tagged RNA-seq data, so no differences in transcript length should be taken into account. To execute the pipeline on a SLURM cluster, you’d run the following script:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name=nextflow-rnaseq_v1</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=%x_%j.out</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --error=%x_%j.err</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mail-type=ALL</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mail-user=your_email_address</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=1-00:00:00</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --nodes=1</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --ntasks=1</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=12</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=120GB</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --qos=your_group</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> purge</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load nf-core nextflow singularity</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="va">CSV</span><span class="op">=</span>/tmp/rnaseq_data/nextflow_metadata.csv</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="va">GENOME</span><span class="op">=</span>/tmp/rnaseq_data/Athaliana_TAIR10.fa.gz</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="va">GTF</span><span class="op">=</span>/tmp/rnaseq_data/Athaliana_TAIR10.gtf.gz</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="va">SPIKEIN</span><span class="op">=</span>/tmp/rnaseq_data/ERCC92.fa</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="va">PARAMS</span><span class="op">=</span>params.yml</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="ex">nextflow</span> run nf-core/rnaseq <span class="dt">\</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">-r</span> 3.26.0 <span class="dt">\</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">-profile</span> singularity <span class="dt">\</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">-params-file</span> <span class="va">${PARAMS}</span> <span class="dt">\</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">--input</span> <span class="va">${CSV}</span> <span class="dt">\</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">--outdir</span> . <span class="dt">\</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">--gtf</span> <span class="va">${GTF}</span> <span class="dt">\</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">--fasta</span> <span class="va">${GENOME}</span> <span class="dt">\</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">--additional_fasta</span> <span class="va">${SPIKEIN}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>If you’re using your lab’s own server instead of a SLURM cluster, remove the lines containing ‘#SBATCH’ and <code>module load</code> calls. After executing the pipeline, you should be able to see <code>star_salmon</code> folder in its output directory. This is where you will find all transcript abundance estimations we will use in other chapters. Importing such quantifications to a final matrix of gene-level transcript abundances is the topic of the next chapter.</p>
 </section>
 <section id="session-info" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="session-info">Session info</h2>
@@ -249,7 +395,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Brussels
- date     2026-09-24
+ date     2026-09-27
  pandoc   3.6.3 @ /usr/lib/rstudio/resources/app/bin/quarto/bin/tools/x86_64/ (via rmarkdown)
  quarto   1.8.25 @ /usr/local/bin/quarto
 
@@ -259,7 +405,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  digest        0.6.39  2025-11-19 [1] CRAN (R 4.5.2)
  evaluate      1.0.5   2025-08-27 [1] CRAN (R 4.5.2)
  fastmap       1.2.0   2024-05-15 [1] CRAN (R 4.5.2)
- here        * 1.0.2   2025-09-15 [1] CRAN (R 4.5.2)
  htmltools     0.5.9   2025-12-04 [1] CRAN (R 4.5.2)
  htmlwidgets   1.6.4   2023-12-06 [1] CRAN (R 4.5.2)
  jsonlite      2.0.0   2025-03-27 [1] CRAN (R 4.5.2)
@@ -267,7 +412,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  otel          0.2.0   2025-08-29 [1] CRAN (R 4.5.2)
  rlang         1.1.7   2026-01-09 [1] CRAN (R 4.5.2)
  rmarkdown     2.30    2025-09-28 [1] CRAN (R 4.5.2)
- rprojroot     2.1.1   2025-08-26 [1] CRAN (R 4.5.2)
  rstudioapi    0.18.0  2026-01-16 [1] CRAN (R 4.5.2)
  sessioninfo   1.2.3   2025-02-05 [1] CRAN (R 4.5.2)
  xfun          0.56    2026-01-18 [1] CRAN (R 4.5.2)
@@ -277,7 +421,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  [2] /usr/local/lib/R/site-library
  [3] /usr/lib/R/site-library
  [4] /usr/lib/R/library
- * ── Packages attached to the search path.
 
 ──────────────────────────────────────────────────────────────────────────────</code></pre>
 </div>
@@ -287,6 +430,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="unnumbered anchored" data-anchor-id="references">References</h2>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-bioinformatics2011fastqc" class="csl-entry" role="listitem">
+Bioinformatics, Babraham. 2011. <em>FastQC: A Quality Control Tool for High Throughput Sequence Data</em>.
+</div>
+<div id="ref-chen2018fastp" class="csl-entry" role="listitem">
+Chen, Shifu, Yanqing Zhou, Yaru Chen, and Jia Gu. 2018. <span>“Fastp: An Ultra-Fast All-in-One FASTQ Preprocessor.”</span> <em>Bioinformatics</em> 34 (17): i884–90.
+</div>
+<div id="ref-dobin2013star" class="csl-entry" role="listitem">
+Dobin, Alexander, Carrie A Davis, Felix Schlesinger, et al. 2013. <span>“STAR: Ultrafast Universal RNA-Seq Aligner.”</span> <em>Bioinformatics</em> 29 (1): 15–21.
+</div>
+<div id="ref-ewels2020nf" class="csl-entry" role="listitem">
+Ewels, Philip A, Alexander Peltzer, Sven Fillinger, et al. 2020. <span>“The Nf-Core Framework for Community-Curated Bioinformatics Pipelines.”</span> <em>Nature Biotechnology</em> 38 (3): 276–78.
+</div>
+<div id="ref-patro2017salmon" class="csl-entry" role="listitem">
+Patro, Rob, Geet Duggal, Michael I Love, Rafael A Irizarry, and Carl Kingsford. 2017. <span>“Salmon Provides Fast and Bias-Aware Quantification of Transcript Expression.”</span> <em>Nature Methods</em> 14 (4): 417–19.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
